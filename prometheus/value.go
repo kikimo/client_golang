@@ -146,7 +146,8 @@ func populateMetric(
 }
 
 func makeLabelPairs(desc *Desc, labelValues []string) []*dto.LabelPair {
-	totalLen := len(desc.variableLabels) + len(desc.constLabelPairs)
+	variableLabelLen := len(desc.variableLabels)
+	totalLen := variableLabelLen + len(desc.constLabelPairs)
 	if totalLen == 0 {
 		// Super fast path.
 		return nil
@@ -156,11 +157,17 @@ func makeLabelPairs(desc *Desc, labelValues []string) []*dto.LabelPair {
 		return desc.constLabelPairs
 	}
 	labelPairs := make([]*dto.LabelPair, 0, totalLen)
+	labelPairsPool := make([]dto.LabelPair, variableLabelLen, variableLabelLen)
 	for i, n := range desc.variableLabels {
-		labelPairs = append(labelPairs, &dto.LabelPair{
-			Name:  proto.String(n),
-			Value: proto.String(labelValues[i]),
-		})
+		labelPair := &labelPairsPool[i]
+		labelPair.Name = proto.String(n)
+		labelPair.Value = proto.String(labelValues[i])
+
+		// labelPairs = append(labelPairs, &dto.LabelPair{
+		// 	Name:  proto.String(n),
+		// 	Value: proto.String(labelValues[i]),
+		// })
+		labelPairs = append(labelPairs, labelPair)
 	}
 	labelPairs = append(labelPairs, desc.constLabelPairs...)
 	sort.Sort(labelPairSorter(labelPairs))
